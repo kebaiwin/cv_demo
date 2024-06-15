@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from time import sleep
 
 # 设置最小检测区域的宽度和高度（以像素为单位）
 largura_min = 80  # 最小矩形宽度
@@ -12,11 +11,9 @@ offset = 6  # 允许的像素误差
 # 设置计数线的位置（以像素为单位）
 pos_linha = 550  # 计数线的位置
 
-# 设置视频的帧率
-delay = 60  # 视频的FPS
-
-# 初始化检测中心点的列表和车辆计数器
+# 初始化检测中心点的列表
 detec = []
+# 车辆计数器
 carros = 0
 
 
@@ -30,7 +27,7 @@ def pega_centro(x, y, w, h):
 
 
 # 打开视频文件
-cap = cv2.VideoCapture('opencv/data/video.mp4')
+cap = cv2.VideoCapture('data/video.mp4')
 
 # 创建背景减法器对象，用于前景检测
 subtracao = cv2.bgsegm.createBackgroundSubtractorMOG()
@@ -38,18 +35,15 @@ subtracao = cv2.bgsegm.createBackgroundSubtractorMOG()
 # 使用一个无限循环处理每一帧视频
 while True:
     # 读取视频的每一帧
-    ret, frame1 = cap.read()
-    print(frame1.shape)
-    # 计算延时，以适应视频帧率
-    tempo = float(1 / delay)
-    # 由于实时显示，我们注释掉了睡眠时间
-    # sleep(tempo)
+    ret, frame = cap.read()
+    if ret is not True:
+        break
 
     # 将图像转换为灰度图
-    grey = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # 对灰度图应用高斯模糊，去除噪声
-    blur = cv2.GaussianBlur(grey, (3, 3), 5)
+    blur = cv2.GaussianBlur(gray, (3, 3), 5)
 
     # 对模糊处理后的图像应用背景减法
     img_sub = subtracao.apply(blur)
@@ -61,14 +55,14 @@ while True:
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
     # 对膨胀后的图像进行形态学闭操作，进一步填充前景中的空洞
-    # dilatada = cv2.morphologyEx(dilat, cv2.MORPH_CLOSE, kernel)
-    # dilatada = cv2.morphologyEx(dilatada, cv2.MORPH_CLOSE, kernel)
+    dilatada = cv2.morphologyEx(dilat, cv2.MORPH_CLOSE, kernel)
+    dilatada = cv2.morphologyEx(dilatada, cv2.MORPH_CLOSE, kernel)
 
     # 查找前景图像中的轮廓
     contorno, h = cv2.findContours(dilat, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # 在原始帧上绘制计数线
-    cv2.line(frame1, (25, pos_linha), (1200, pos_linha), (255, 127, 0), 3)
+    cv2.line(frame, (25, pos_linha), (1200, pos_linha), (255, 127, 0), 3)
 
     # 遍历每一个轮廓
     for (i, c) in enumerate(contorno):
@@ -82,7 +76,7 @@ while True:
             continue
 
         # 在原始帧上绘制外接矩形
-        cv2.rectangle(frame1, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         # 获取外接矩形的中心点
         centro = pega_centro(x, y, w, h)
@@ -91,7 +85,7 @@ while True:
         detec.append(centro)
 
         # 在原始帧上绘制中心点
-        cv2.circle(frame1, centro, 4, (0, 0, 255), -1)
+        cv2.circle(frame, centro, 4, (0, 0, 255), -1)
 
         # 遍历检测列表中的中心点
         for (x, y) in detec:
@@ -100,20 +94,20 @@ while True:
                 # 如果穿过，则计数器加1
                 carros += 1
                 # 在原始帧上重新绘制计数线
-                cv2.line(frame1, (25, pos_linha), (1200, pos_linha), (0, 127, 255), 3)
+                cv2.line(frame, (25, pos_linha), (1200, pos_linha), (0, 127, 255), 3)
                 # 从检测列表中移除该中心点
                 detec.remove((x, y))
                 # 打印车辆计数
                 print("检测到的车辆数量 : " + str(carros))
 
     # 在原始帧上显示车辆计数
-    cv2.putText(frame1, "car count : " + str(carros), (450, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 5)
+    cv2.putText(frame, "car count : " + str(carros), (450, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 5)
 
     # 显示原始视频帧
-    cv2.imshow("img", frame1)
+    cv2.imshow("img", frame)
 
     # 显示前景检测后的图像
-    cv2.imshow("check", dilat)
+    # cv2.imshow("check", dilatada)
 
     # 如果按下ESC键，则退出循环
     if cv2.waitKey(1) == 27:

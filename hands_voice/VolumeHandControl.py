@@ -1,3 +1,4 @@
+# 手势控制电脑音量
 import cv2
 import time
 import numpy as np
@@ -22,8 +23,6 @@ devices = AudioUtilities.GetSpeakers()
 interface = devices.Activate(
     IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
 volume = cast(interface, POINTER(IAudioEndpointVolume))
-# volume.GetMute()
-# volume.GetMasterVolumeLevel()
 volRange = volume.GetVolumeRange()
 minVol = volRange[0]
 maxVol = volRange[1]
@@ -47,10 +46,6 @@ while True:
         cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
 
         length = math.hypot(x2 - x1, y2 - y1)
-        # print(length)
-
-        # Hand range 50 - 300
-        # Volume Range -65 - 0
 
         vol = np.interp(length, [50, 300], [minVol, maxVol])
         volBar = np.interp(length, [50, 300], [400, 150])
